@@ -85,6 +85,14 @@ pub(crate) fn write_data(state: &AppState) -> CmdResult<usize> {
     Ok(count)
 }
 
+/// Write the guides into the data addon if it is installed in the game.
+pub(crate) fn sync_data_addon(state: &AppState) {
+    let settings = state.settings();
+    if settings.addons_dir(settings.edition).join(DATA_ADDON).exists() {
+        let _ = write_data(state);
+    }
+}
+
 /// WoW Forever: every guide (see `followed_guides`) as a guide pack for Polestar, written into
 /// the game (Polestar picks each character's guide by its race, class and level). Returns the
 /// number of guides.

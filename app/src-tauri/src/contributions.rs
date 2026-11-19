@@ -359,10 +359,7 @@ pub(crate) fn send(
     if posted.accepted() {
         // The data addon tells the addon what it can drop (when the guides were sent to the game
         // already: never sends them by itself); a failure only delays the purge.
-        let settings = state.settings();
-        if settings.addons_dir(settings.edition).join(DATA_ADDON).exists() {
-            let _ = write_data(state);
-        }
+        sync_data_addon(state);
     }
     Ok((posted, record))
 }

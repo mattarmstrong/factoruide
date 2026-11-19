@@ -70,6 +70,9 @@ pub(crate) fn migrate_results(state: &AppState) {
             meta.created,
         );
     }
+    if !found.is_empty() {
+        sync_data_addon(state);
+    }
     let _ = std::fs::rename(&old, state.data_dir.join("results.old"));
 }
 
@@ -88,7 +91,12 @@ pub(crate) async fn blocking<T: Send + 'static>(
 /// the best guide found so far; `cancel_plan` makes it fail with "cancelled" (nothing saved).
 #[tauri::command]
 pub(crate) async fn plan_route(app: AppHandle, request: PlanRequest) -> CmdResult<VersionMeta> {
-    blocking(app, move |state| state.studio.plan_route(state, &request)).await
+    blocking(app, move |state| {
+        let meta = state.studio.plan_route(state, &request)?;
+        sync_data_addon(state);
+        Ok(meta)
+    })
+    .await
 }
 
 /// The flight paths a character probably knows from the quests it did in their towns
@@ -139,7 +147,12 @@ pub(crate) async fn preview_starts(app: AppHandle, request: PlanRequest) -> CmdR
 /// edited by hand: its steps are then added in the editor.
 #[tauri::command]
 pub(crate) async fn manual_route(app: AppHandle, request: PlanRequest) -> CmdResult<VersionMeta> {
-    blocking(app, move |state| state.studio.manual_route(state, &request)).await
+    blocking(app, move |state| {
+        let meta = state.studio.manual_route(state, &request)?;
+        sync_data_addon(state);
+        Ok(meta)
+    })
+    .await
 }
 
 /// A version replayed to be watched: when each step starts and ends, the character's moves and
@@ -195,7 +208,12 @@ pub(crate) async fn edit_suggest(
 /// and close the editor.
 #[tauri::command]
 pub(crate) async fn edit_save(app: AppHandle, steps: Vec<RouteStep>) -> CmdResult<VersionMeta> {
-    blocking(app, move |state| state.studio.edit_save(state, &steps)).await
+    blocking(app, move |state| {
+        let meta = state.studio.edit_save(state, &steps)?;
+        sync_data_addon(state);
+        Ok(meta)
+    })
+    .await
 }
 
 /// Leave the editor without saving.
@@ -253,17 +271,23 @@ pub(crate) fn get_version(
 /// The version of a guide its characters follow (`None`: the latest), written to the addon.
 #[tauri::command(async)]
 pub(crate) fn set_installed(state: State<'_, AppState>, guide: GuideId, version: Option<u32>) -> CmdResult<()> {
-    Ok(state.library().set_installed(&guide, version)?)
+    state.library().set_installed(&guide, version)?;
+    sync_data_addon(&state);
+    Ok(())
 }
 
 #[tauri::command(async)]
 pub(crate) fn delete_version(state: State<'_, AppState>, guide: GuideId, version: u32) -> CmdResult<()> {
-    Ok(state.library().delete_version(&guide, version)?)
+    state.library().delete_version(&guide, version)?;
+    sync_data_addon(&state);
+    Ok(())
 }
 
 #[tauri::command(async)]
 pub(crate) fn delete_guide(state: State<'_, AppState>, guide: GuideId) -> CmdResult<()> {
-    Ok(state.library().delete_guide(&guide)?)
+    state.library().delete_guide(&guide)?;
+    sync_data_addon(&state);
+    Ok(())
 }
 
 /// Write a version as a .fgguide file in the Downloads folder; returns its path.
@@ -284,5 +308,7 @@ pub(crate) fn export_version(
 /// Add a guide received as a .fgguide file (its content): a new version of the guide of its name.
 #[tauri::command(async)]
 pub(crate) fn import_guide(state: State<'_, AppState>, content: String) -> CmdResult<VersionMeta> {
-    state.studio.import_guide(&*state, &content)
+    let meta = state.studio.import_guide(&*state, &content)?;
+    sync_data_addon(&state);
+    Ok(meta)
 }

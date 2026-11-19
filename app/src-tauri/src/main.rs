@@ -37,7 +37,7 @@ mod characters;
 mod contributions;
 use addon::{
     ADDON_VERSION, addon_synced, export_polestar, guide_text, install_addon, install_polestar, open_link,
-    polestar_installed, polestar_installed_in, polestar_string, write_data,
+    polestar_installed, polestar_installed_in, polestar_string, sync_data_addon, write_data,
 };
 use job::DATA_ADDON;
 /// Guides, planning and the editor.
